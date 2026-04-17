@@ -19,7 +19,7 @@ require("dotenv").config();
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "postgres",
-  logging: false, // clean logs in production
+  logging: false, 
 
   dialectOptions: {
     ssl: {
@@ -29,6 +29,6 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
   },
 });
 
-// module.exports = sequelize;
+
 
 module.exports = sequelize;
