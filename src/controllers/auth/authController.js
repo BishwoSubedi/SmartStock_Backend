@@ -15,7 +15,8 @@ const generateOTP = () => {
 };
 
 const registerUser = async (req, res) => {
-  const { businessName, adminName, email, password, confirmPassword } = req.body;
+  const { businessName, adminName, email, password, confirmPassword } =
+    req.body;
 
   if (!businessName || !adminName || !email || !password || !confirmPassword) {
     return res.status(400).json({
@@ -71,7 +72,8 @@ const registerUser = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "User registered, but failed to send OTP email. Please try resend OTP.",
+      message:
+        "User registered, but failed to send OTP email. Please try resend OTP.",
     });
   }
 
@@ -235,13 +237,13 @@ const loginUser = async (req, res) => {
       email: user.email,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "7d" },
   );
 
   res.cookie("token", token, {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -261,8 +263,8 @@ const loginUser = async (req, res) => {
 const logoutUser = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
 
   return res.status(200).json({
@@ -447,7 +449,8 @@ const resetPassword = async (req, res) => {
 
   return res.status(200).json({
     success: true,
-    message: "Password reset successfully. You can now login with your new password.",
+    message:
+      "Password reset successfully. You can now login with your new password.",
   });
 };
 module.exports = {
