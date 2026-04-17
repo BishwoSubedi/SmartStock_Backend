@@ -13,4 +13,22 @@ const sequelize = new Sequelize(
   }
 );
 
+
+// const { Sequelize } = require("sequelize");
+// require("dotenv").config();
+
+// const sequelize = new Sequelize(process.env.DATABASE_URL, {
+//   dialect: "postgres",
+//   logging: false, // clean logs in production
+
+//   dialectOptions: {
+//     ssl: {
+//       require: true,
+//       rejectUnauthorized: false,
+//     },
+//   },
+// });
+
+// module.exports = sequelize;
+
 module.exports = sequelize;
