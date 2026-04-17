@@ -5,6 +5,7 @@ require("./models/User");
 require("./models/Section");
 require("./models/Supplier");
 require("./models/item");
+require("./models/StockHistory");
 
 const PORT = process.env.PORT || 5000;
 
@@ -12,7 +13,7 @@ sequelize
   .authenticate()
   .then(() => {
     console.log("PostgreSQL connected successfully");
-    return sequelize.sync({ force: false });
+    return sequelize.sync({ alter: false});
   })
   .then(() => {
     console.log("Models synced successfully");

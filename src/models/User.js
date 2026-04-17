@@ -6,7 +6,7 @@ const User = sequelize.define(
   {
     id: {
       type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4, // auto generate UUID
+      defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
     businessName: {
@@ -33,11 +33,31 @@ const User = sequelize.define(
       type: DataTypes.STRING,
       defaultValue: "admin",
     },
+    isEmailVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    otp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    otpExpires: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    resetOtp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    resetOtpExpires: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     tableName: "users",
     timestamps: true,
-  }
+  },
 );
 
 module.exports = User;

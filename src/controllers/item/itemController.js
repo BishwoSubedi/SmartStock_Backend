@@ -3,9 +3,11 @@ const Item = require("../../models/item");
 const Section = require("../../models/Section");
 const Supplier = require("../../models/Supplier");
 const sendEmail = require("../../services/sendEmail");
+const StockHistory = require("../../models/StockHistory");
 
 const createItem = async (req, res) => {
-  const { itemName, quantity, price, threshold, sectionId, supplierId } = req.body;
+  const { itemName, quantity, price, threshold, sectionId, supplierId } =
+    req.body;
 
   if (!itemName || !sectionId || !supplierId) {
     return res.status(400).json({
@@ -111,7 +113,8 @@ const getMyItems = async (req, res) => {
 
 const updateItem = async (req, res) => {
   const { id } = req.params;
-  const { itemName, quantity, price, threshold, sectionId, supplierId } = req.body;
+  const { itemName, quantity, price, threshold, sectionId, supplierId } =
+    req.body;
 
   const item = await Item.findOne({
     where: {
@@ -332,10 +335,172 @@ ${req.user.businessName}
     message: "Low stock alert email sent successfully",
   });
 };
+
+const removeStock = async (req, res) => {
+  const { id } = req.params;
+  const { removedQuantity } = req.body;
+
+  const parsedRemovedQuantity = Number(removedQuantity);
+
+  if (!parsedRemovedQuantity || parsedRemovedQuantity <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Removed quantity must be greater than 0",
+    });
+  }
+
+  const item = await Item.findOne({
+    where: {
+      id,
+      userId: req.user.id,
+    },
+    include: [
+      {
+        model: Supplier,
+        attributes: ["id", "supplierName", "email"],
+      },
+      {
+        model: Section,
+        attributes: ["id", "sectionName"],
+      },
+    ],
+  });
+
+  if (!item) {
+    return res.status(404).json({
+      success: false,
+      message: "Item not found",
+    });
+  }
+
+  if (parsedRemovedQuantity > item.quantity) {
+    return res.status(400).json({
+      success: false,
+      message: "Removed quantity cannot be greater than available stock",
+    });
+  }
+
+  const previousQuantity = item.quantity;
+  const newQuantity = item.quantity - parsedRemovedQuantity;
+
+  item.quantity = newQuantity;
+
+  if (item.quantity > item.threshold) {
+    item.lowStockEmailSent = false;
+  }
+
+  if (
+    item.quantity <= item.threshold &&
+    !item.lowStockEmailSent &&
+    item.Supplier &&
+    item.Supplier.email
+  ) {
+    const subject = `Low Stock Alert: ${item.itemName}`;
+
+    const text = `
+Hello ${item.Supplier.supplierName || "Supplier"},
+
+This is an automatic low stock alert from ${req.user.businessName}.
+
+Item Name: ${item.itemName}
+Section: ${item.Section ? item.Section.sectionName : "N/A"}
+Current Quantity: ${item.quantity}
+Threshold: ${item.threshold}
+
+Please arrange restocking as soon as possible.
+
+Regards,
+${req.user.businessName}
+`;
+
+    await sendEmail({
+      to: item.Supplier.email,
+      subject,
+      text,
+    });
+
+    item.lowStockEmailSent = true;
+  }
+
+  await item.save();
+
+  await StockHistory.create({
+    actionType: "OUT",
+    changedQuantity: parsedRemovedQuantity,
+    previousQuantity,
+    newQuantity,
+    note: "Stock removed from inventory",
+    userId: req.user.id,
+    itemId: item.id,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Stock removed successfully",
+    item,
+  });
+};
+
+const addStock = async (req, res) => {
+  const { id } = req.params;
+  const { addedQuantity } = req.body;
+
+  const parsedAddedQuantity = Number(addedQuantity);
+
+  if (!parsedAddedQuantity || parsedAddedQuantity <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Added quantity must be greater than 0",
+    });
+  }
+
+  const item = await Item.findOne({
+    where: {
+      id,
+      userId: req.user.id,
+    },
+  });
+
+  if (!item) {
+    return res.status(404).json({
+      success: false,
+      message: "Item not found",
+    });
+  }
+
+  const previousQuantity = item.quantity;
+  const newQuantity = item.quantity + parsedAddedQuantity;
+
+  item.quantity = newQuantity;
+
+  if (item.quantity > item.threshold) {
+    item.lowStockEmailSent = false;
+  }
+
+  await item.save();
+
+  await StockHistory.create({
+    actionType: "IN",
+    changedQuantity: parsedAddedQuantity,
+    previousQuantity,
+    newQuantity,
+    note: "Stock added to inventory",
+    userId: req.user.id,
+    itemId: item.id,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Stock added successfully",
+    item,
+  });
+};
 module.exports = {
   createItem,
   getMyItems,
   updateItem,
+  removeStock,
   deleteItem,
   sendLowStockAlert,
+  addStock,
 };
